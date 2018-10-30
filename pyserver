@@ -1,0 +1,133 @@
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+
+#    _____ __ __ _____ _____ _____ _____ _____ _____ 
+#   |  _  |  |  |   __|   __| __  |  |  |   __| __  |
+#   |   __|_   _|__   |   __|    -|  |  |   __|    -|
+#   |__|    |_| |_____|_____|__|__|\___/|_____|__|__|
+
+# Simple testing webserver, can spin up webserver on port or a specific network interface
+# USAGE:
+# pyserver 1234                 // spin up a listener on port 1234, netcat to it 'nc <hostname or IP> 1234 -vv'
+# pyserver 1234 eth1            // spins up on port 1234 on interface 'eth1'
+# pyserver 1234 eth1 -d         // spins up on port 1234 on interface 'eth1' and run in background
+# pyserver stop                 // stops all instances of pyserver listerner
+# pyserver help / -h / --help   // prints this message
+
+
+from __future__ import print_function
+import SimpleHTTPServer as shs
+import BaseHTTPServer as bhs
+import SocketServer as ss
+import sys
+import os
+import socket
+
+
+class color:
+    GREEN = '\x1b[0;32;40m' 
+    BLUE = '\x1b[0;34;40m' 
+    YELLOW = '\x1b[0;33;40m'
+    TEAL = '\x1b[0;36;40m'
+    WHITE = '\x1b[0;37;40m'
+    RED = '\x1b[1;31;40m'
+    GRAY = '\x1b[2;37;40m'
+    END = '\x1b[0m'
+
+def get_network():
+    ''' get primary IP and Hostname of your host '''
+    network = []
+    # add your Hostname
+    network.append(socket.gethostname())
+
+    # add your primary IP
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # doesn't even have to be reachable
+        s.connect(('10.255.255.255', 1))
+        IP = s.getsockname()[0]
+    except:
+        IP = '127.0.0.1'
+    finally:
+        s.close()
+    network.append(IP)
+    return network
+
+def start_server(port, daemon=False):
+    ''' start a local webserver on a port '''
+    network = get_network()
+    handler = shs.SimpleHTTPRequestHandler
+    server = ss.TCPServer(('', int(port)), handler)
+    print(color.GREEN + '\nPyserver serving at port: ' + port + color.END)
+    print(color.GREEN + '\nConnect to this machine using netcat: ' + color.END)
+    print(color.TEAL + '\nnc ' + network[0] + ' ' + port + ' -vv' + color.END)
+    print(color.TEAL + '\nnc ' + network[1] + ' ' + port + ' -vv \n' + color.END)
+    return server.serve_forever()
+
+
+
+
+if __name__ == '__main__':
+
+    # set dark background
+#    os.system('setterm -background black -foreground white')
+
+    # ap = argparse.ArgumentParser()
+    # ap.add_argument("-p", required=False, help="port on which to run webserver: '-p 2500'")
+    # ap.add_argument("-i", required=False, help="network interface on which to run: '-i eth1'")
+    # ap.add_argument("-d", required=False, help="run in background as daemon")
+    # ap.add_argument("stop", required=False, help="stop all instances of pyserver")
+    # args = vars(ap.parse_args())	
+
+    # print(args['port'])
+    # sys.exit()
+
+    if len(sys.argv) < 2:
+        print(color.RED + '\nNo arguments provided..exiting.\n' + color.END)
+        print(color.WHITE + 'usage: \n')
+        print('pyserver 1234  ' + color.GRAY + '# runs test pyserver on port 1234\n' +
+        color.WHITE + 'pyserver 1234 eth1  ' + color.GRAY + '# runs test pyserver on port 1234 on interface eth1\n' +
+        color.WHITE + 'pyserver 1234 -d  ' + color.GRAY + '# run in background as daemon \n' +
+        color.WHITE + 'pyserver stop  ' + color.GRAY + '# stop all instances of pyserver\n' + color.END)
+        sys.exit()
+
+
+    # run as non daemon with port
+    if len(sys.argv) == 2:
+        if sys.argv[1] != 'stop':
+            port = sys.argv[1]
+            # check if port is a number
+            if port.isdigit():
+                # start web server
+                start_server(port)
+            
+
+            elif sys.argv[1] == 'help' or sys.argv[1] == '--help' or sys.argv[1] == '-h':
+                print(color.WHITE + 'help text here \n' + color.END)
+
+            else:
+                print(color.RED + 'ERROR ' + color.WHITE + 'provided Port is not numeric: %s' % color.YELLOW + port + color.END)
+ 
+
+
+# if len(sys.argv) == 3:
+#     # if run as daemon
+#     if sys.argv[2] == '-d':
+#         print('daemon')
+#     else:
+#         import psutil
+#         addrs = psutil.net_if_addrs()
+#         interfaces = addrs.keys()
+#         if sys.argv[2] not in interfaces:
+#             print('selected network interface: %s is not available' % sys.argv[2])
+#             print('available interfaces: %s' % interfaces)
+
+# print(color.YELLOW+'Running test pyserver..'+color.END)
+# # handler = shs.SimpleHTTPRequestHandler
+# # py_web_server = ss.TCPServer(('', port), handler)
+# # print 'python web server. serving at port', port
+# # py_web_server.serve_forever()
+
+
+
+#, SimpleHTTPServer as shs; bhs.HTTPServer(("192.168.200.99", 8331), shs.SimpleHTTPRequestHandler).serve_forever()
