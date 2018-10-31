@@ -22,7 +22,9 @@ import SocketServer as ss
 import sys
 import os
 import socket
-
+import subprocess
+import psutil
+import multiprocessing
 
 class color:
     GREEN = '\x1b[0;32;40m' 
@@ -33,6 +35,10 @@ class color:
     RED = '\x1b[1;31;40m'
     GRAY = '\x1b[2;37;40m'
     END = '\x1b[0m'
+
+# def check_port(port):
+#     ''' checks port for propert syntax '''
+#     if port.isdigit() is False:
 
 def get_network():
     ''' get primary IP and Hostname of your host '''
@@ -53,7 +59,7 @@ def get_network():
     network.append(IP)
     return network
 
-def start_server(port, daemon=False):
+def start_server(port):
     ''' start a local webserver on a port '''
     network = get_network()
     handler = shs.SimpleHTTPRequestHandler
@@ -64,24 +70,18 @@ def start_server(port, daemon=False):
     print(color.TEAL + '\nnc ' + network[1] + ' ' + port + ' -vv \n' + color.END)
     return server.serve_forever()
 
-
-
+def stop_process():
+    ps = subprocess.Popen(('ps', 'aux'), stdout=subprocess.PIPE)
+    procs = ps.communicate()[0]
+    for proc in procs.split('\n'):
+        if 'pyserver' in proc:
+            if 'pyserver stop' not in proc:
+                #print(proc.split())
+                p = psutil.Process(int(proc.split()[1]))
+                print(p)
+                p.terminate()  #or p.kill()
 
 if __name__ == '__main__':
-
-    # set dark background
-#    os.system('setterm -background black -foreground white')
-
-    # ap = argparse.ArgumentParser()
-    # ap.add_argument("-p", required=False, help="port on which to run webserver: '-p 2500'")
-    # ap.add_argument("-i", required=False, help="network interface on which to run: '-i eth1'")
-    # ap.add_argument("-d", required=False, help="run in background as daemon")
-    # ap.add_argument("stop", required=False, help="stop all instances of pyserver")
-    # args = vars(ap.parse_args())	
-
-    # print(args['port'])
-    # sys.exit()
-
     if len(sys.argv) < 2:
         print(color.RED + '\nNo arguments provided..exiting.\n' + color.END)
         print(color.WHITE + 'usage: \n')
@@ -91,29 +91,38 @@ if __name__ == '__main__':
         color.WHITE + 'pyserver stop  ' + color.GRAY + '# stop all instances of pyserver\n' + color.END)
         sys.exit()
 
-
     # run as non daemon with port
     if len(sys.argv) == 2:
         if sys.argv[1] != 'stop':
             port = sys.argv[1]
-            # check if port is a number
-            if port.isdigit():
-                # start web server
-                start_server(port)
             
-
+            # check if 2nd arg is a port
+            if port.isdigit():
+                start_server(port)
             elif sys.argv[1] == 'help' or sys.argv[1] == '--help' or sys.argv[1] == '-h':
                 print(color.WHITE + 'help text here \n' + color.END)
-
             else:
                 print(color.RED + 'ERROR ' + color.WHITE + 'provided Port is not numeric: %s' % color.YELLOW + port + color.END)
- 
+        elif sys.argv[1] == 'stop':
+            stop_process()
 
+    # Daemon
+    if len(sys.argv) == 3:
+        if sys.argv[2] == '-d':
+            
+            port = sys.argv[1]
 
-# if len(sys.argv) == 3:
-#     # if run as daemon
-#     if sys.argv[2] == '-d':
-#         print('daemon')
+            if port.isdigit():
+                #port = int(port)
+                d = multiprocessing.Process(target=start_server, args=port)
+                d.start()
+                d.join()
+#                #d.daemon = True
+#                d.start()
+#                d.join()
+#                t = threading.Thread(target=bg_run.display)
+#t.daemon = True
+#t.start()
 #     else:
 #         import psutil
 #         addrs = psutil.net_if_addrs()
