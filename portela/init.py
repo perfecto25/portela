@@ -1,18 +1,16 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 
-#    _____ __ __ _____ _____ _____ _____ _____ _____ 
-#   |  _  |  |  |   __|   __| __  |  |  |   __| __  |
-#   |   __|_   _|__   |   __|    -|  |  |   __|    -|
-#   |__|    |_| |_____|_____|__|__|\___/|_____|__|__|
-
+### PORTELA
 # Simple testing webserver, can spin up webserver on port or a specific network interface
+
 # USAGE:
-# pyserver 1234                 // spin up a listener on port 1234, netcat to it 'nc <hostname or IP> 1234 -vv'
-# pyserver 1234 eth1            // spins up on port 1234 on interface 'eth1'
-# pyserver 1234 eth1 -d         // spins up on port 1234 on interface 'eth1' and run in background
-# pyserver stop                 // stops all instances of pyserver listerner
-# pyserver help / -h / --help   // prints this message
+# portela 1234                 // spin up a listener on port 1234, netcat to it 'nc <hostname or IP> 1234 -vv'
+# portela 1234 eth1            // spins up on port 1234 on interface 'eth1'
+# portela 1234 eth1 -d         // spins up on port 1234 on interface 'eth1' and run in background
+# portela status               // shows active ports
+# portela stop                 // stops all instances of portela listerner
+# portela help / -h / --help   // prints this message
 
 
 from __future__ import print_function
@@ -85,9 +83,9 @@ if __name__ == '__main__':
     if len(sys.argv) < 2:
         print(color.RED + '\nNo arguments provided..exiting.\n' + color.END)
         print(color.WHITE + 'usage: \n')
-        print('pyserver 1234  ' + color.GRAY + '# runs test pyserver on port 1234\n' +
-        color.WHITE + 'pyserver 1234 eth1  ' + color.GRAY + '# runs test pyserver on port 1234 on interface eth1\n' +
-        color.WHITE + 'pyserver 1234 -d  ' + color.GRAY + '# run in background as daemon \n' +
+        print('pyserver 1234  ' + color.GRAY + '# runs test pyserver on port 1234' +
+        color.WHITE + 'pyserver 1234 eth1  ' + color.GRAY + '# runs test pyserver on port 1234 on interface eth1' +
+        color.WHITE + 'pyserver 1234 -d  ' + color.GRAY + '# run in background as daemon' +
         color.WHITE + 'pyserver stop  ' + color.GRAY + '# stop all instances of pyserver\n' + color.END)
         sys.exit()
 

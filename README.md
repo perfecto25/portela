@@ -1,17 +1,24 @@
-# PYSERVER
-## simple port connectivity testing tool
+# Portela
+## a simple port allocator
 
+Portela is a Python 2 & 3 compatible network tool with zero dependencies.
+
+Portela can be used to test port c
 ### usage:
 ```
-# pyserver 1234                 // spin up a listener on port 1234, netcat to it 'nc <hostname or IP> 1234 -vv'
-# pyserver 1234 eth1            // spins up on port 1234 on interface 'eth1'
-# pyserver 1234 eth1 -d         // spins up on port 1234 on interface 'eth1' and run in background
-# pyserver stop                 // stops all instances of pyserver listerner
-# pyserver help / -h / --help   // prints this message
+# portela 1234                 // spin up a listener on port 1234, netcat to it 'nc <hostname or IP> 1234 -vv'
+# portela 1234 eth1            // spins up on port 1234 on interface 'eth1'
+# portela 1234 eth1 -d         // spins up on port 1234 on interface 'eth1' and run in background
+# portela stop                 // stops all instances of portela listerner
+# portela help / -h / --help   // prints this message
 ```
 
 ### Install
 
-place pyserver into /usr/local/bin
+pip install portela
 
-you should now be able to call pyserver from command line
+### Testing
+Local testing
+
+    sudo pip install -e /path/to/portela
+
