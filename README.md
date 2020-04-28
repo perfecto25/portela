@@ -22,3 +22,6 @@ Local testing
 
     sudo pip install -e /path/to/portela
 
+
+### Daemon
+Daemon functions are taken from this article: https://www.jejik.com/articles/2007/02/a_simple_unix_linux_daemon_in_python/

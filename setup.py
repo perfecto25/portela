@@ -13,6 +13,7 @@ setup(name='portela',
       author_email='mike.reider@gmail.com',
       license='MIT',
       packages=['portela'],
+      keywords='portela port listener web server',
       zip_safe=True,
       scripts=['bin/portela'],
       entry_points={'console_scripts': ['portela=portela.__main__:entry']}

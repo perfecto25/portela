@@ -3,29 +3,25 @@ import sys
 import os
 import socket
 import subprocess
-import psutil
-import multiprocessing
 import argparse
+import psutil
 import textwrap
+from daemon import Daemon
+from os.path import expanduser
+user_home = expanduser("~")
+
+GREEN = '\x1b[0;32;40m' 
+BLUE = '\x1b[0;34;40m' 
+YELLOW = '\x1b[0;33;40m'
+TEAL = '\x1b[0;36;40m'
+WHITE = '\x1b[0;37;40m'
+RED = '\x1b[1;31;40m'
+GRAY = '\x1b[2;37;40m'
+END = '\x1b[0m'
 
 
-
-class color:
-    GREEN = '\x1b[0;32;40m' 
-    BLUE = '\x1b[0;34;40m' 
-    YELLOW = '\x1b[0;33;40m'
-    TEAL = '\x1b[0;36;40m'
-    WHITE = '\x1b[0;37;40m'
-    RED = '\x1b[1;31;40m'
-    GRAY = '\x1b[2;37;40m'
-    END = '\x1b[0m'
-
-
-def __get_network():
-    ''' get primary IP and Hostname of your host '''
-    network = []
-    # add your Hostname
-    # network.append(socket.gethostname())
+def _get_network():
+    ''' get primary IP of your host '''
 
     # add your primary IP
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -37,92 +33,97 @@ def __get_network():
         IP = '127.0.0.1'
     finally:
         s.close()
-    network.append(IP)
-    return network[0]
+    return IP
 
 
-def __serve(args):
+def _serve(args):
     ''' start a local webserver on a port '''
-    
+ 
     port = str(args.port)
-    msg = str(args.m)
+   
 
     if not port.isdigit():
         print('pass a numeric port, ie: 7500')
         sys.exit()
 
     ## check python version thats currently running Portela
-    
     # Python 2
     if sys.version_info[0] is 2:
-        import SimpleHTTPServer as shs
+        import SimpleHTTPServer
         import BaseHTTPServer as bhs
-        import SocketServer as ss
-
-        network = __get_network()
-        print(network)
-        handler = shs.SimpleHTTPRequestHandler
-        server = ss.TCPServer((network, int(port)), handler)
-        print(color.GREEN + '\nPortela serving on port: ' + port + color.END)
-        print(color.GREEN + 'Connect to this machine using netcat: ' + color.END)
-        print(color.TEAL + 'nc -zv ' + network[0] + ' ' + port + color.END)
-        print(color.TEAL + 'nc -zv ' + network[1] + ' ' + port + color.END)
-        return server.serve_forever()
-
-
+        import SocketServer
+        http_handler = SimpleHTTPServer.SimpleHTTPRequestHandler
+        http_server = SocketServer.TCPServer
 
     # Python 3
     elif sys.version_info[0] is 3:
-        
         from http.server import HTTPServer, BaseHTTPRequestHandler
-        from io import BytesIO
-        
-        class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
-            def do_GET(self):
-                self.send_response(200)
-                self.end_headers()
-                self.wfile.write(b'Hello, world!')
+        http_handler = BaseHTTPRequestHandler
+        http_server = HTTPServer
 
-            def do_POST(self):
-                content_length = int(self.headers['Content-Length'])
-                body = self.rfile.read(content_length)
-                self.send_response(200)
-                self.end_headers()
-                response = BytesIO()
-                response.write(b'This is POST request. ')
-                response.write(b'Received: ')
-                response.write(body)
-                self.wfile.write(response.getvalue())
-        network = __get_network()
-        httpd = HTTPServer(('localhost', 8000), SimpleHTTPRequestHandler)
-        print(color.GREEN + '\nPortela serving on port: ' + port + color.END)
-        print(color.GREEN + 'Connect to this machine using netcat: ' + color.END)
-        print(color.TEAL + 'nc -zv ' + network[0] + ' ' + port + color.END)
-        print(color.TEAL + 'nc -zv ' + network[1] + ' ' + port + color.END)
-        return httpd.serve_forever()
-        
     else:
         print('Python version mismatch, only comptabile with Python2 or Python3')
         sys.exit()
 
+    IP = _get_network()
 
 
+    class Handler(http_handler):
+            
+        def _set_headers(self):
+            self.send_response(200)
+            self.send_header("Content-type", "text/html")
+            self.end_headers()
 
-def __stop(args):
-    ps = subprocess.Popen(('ps', 'aux'), stdout=subprocess.PIPE)
-    procs = ps.communicate()[0]
-    for proc in procs.split('\n'):
-        if 'portela' in proc:
-            if 'portela stop' not in proc:
-                #print(proc.split())
-                p = psutil.Process(int(proc.split()[1]))
-                print(p)
-                p.terminate()  #or p.kill()
+        def _msg(self, message):
+            return message.encode("utf8")  # NOTE: must return a bytes object!
+
+        def do_GET(self):
+
+            if not args.message:
+                message = 'portela!'
+            else:
+                message = str(args.message)
+
+            self._set_headers()
+            self.wfile.write(self._msg(message))
+
+        def do_HEAD(self):
+            self._set_headers()
+
+        def do_POST(self):
+            # Doesn't do anything with posted data
+            self._set_headers()
+            self.wfile.write(self._msg("POST!"))
+
+    server = http_server((IP, int(port)), Handler)
+    print(GREEN + '\nPortela serving on port: ' + port + END)
+    print(GREEN + 'Connect to this machine using netcat: ' + END)
+    print(TEAL + 'nc -zv ' + IP + ' ' + port + END)
+    return server.serve_forever()
 
 
+def _main(args, action='status'):
+    """ start the server either as daemon or standalone """
 
-def __status(args):
-    print('status')
+    print(args)
+    class PortelaDaemon(Daemon):
+        def run(self):
+            while True:
+                _serve(args)
+    
+    d = PortelaDaemon(user_home + '/.portela.pid')
+
+    if args.action == 'start':
+        print('starting!!')
+        if args.daemon:
+            d.start()
+            print("serving Portela as daemon")    
+        else:
+            _serve(args)
+
+    if args.action == 'stop':
+        d.stop()
 
 parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
     description=textwrap.dedent('''
@@ -140,19 +141,16 @@ parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpForm
 
 
 subparsers = parser.add_subparsers()
-
 serve_parser = subparsers.add_parser('serve', help='serve HTTP listener on a port')
 serve_parser.add_argument('port', help='port to listen on', type=int)
-serve_parser.add_argument('-m', action='store', help='message to output during HTTP connection')
-serve_parser.set_defaults(func=__serve)
-
+serve_parser.add_argument('-m', '--message', action='store', help='message to output during HTTP connection')
+serve_parser.add_argument('-d', '--daemon', action='store_true', default=False, help='run Portela as a daemon')
+serve_parser.set_defaults(func=_main, action='start')
 stop_parser = subparsers.add_parser('stop')
-stop_parser.set_defaults(func=__stop)
-
+stop_parser.set_defaults(func=_main, action='stop')
 status_parser = subparsers.add_parser('status')
-status_parser.set_defaults(func=__status)
+status_parser.set_defaults(func=_main, action='status')
 
 def entry():
     args = parser.parse_args()
-    print(args)
     args.func(args)  # call the default function
