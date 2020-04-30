@@ -1,3 +1,18 @@
+
+*.py[cod]
+
+# Packages
+*.egg
 *.egg-info
-*.pyc
-__pycache__
+dist
+build
+eggs
+parts
+bin
+var
+sdist
+develop-eggs
+.installed.cfg
+lib
+lib64
+.vscode
