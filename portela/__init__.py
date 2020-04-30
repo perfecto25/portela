@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 from __future__ import print_function
 import sys
 import os
@@ -6,34 +7,51 @@ import subprocess
 import argparse
 import psutil
 import textwrap
-from daemon import Daemon
+import fcntl
+import struct
 from os.path import expanduser
+from portela.daemon import Daemon
+from portela.shared import Color as c
 user_home = expanduser("~")
 
-GREEN = '\x1b[0;32;40m' 
-BLUE = '\x1b[0;34;40m' 
-YELLOW = '\x1b[0;33;40m'
-TEAL = '\x1b[0;36;40m'
-WHITE = '\x1b[0;37;40m'
-RED = '\x1b[1;31;40m'
-GRAY = '\x1b[2;37;40m'
-END = '\x1b[0m'
+def _get_iface_ip(interface):
+    ''' returns IP address of an interface '''
+    
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    return socket.inet_ntoa(fcntl.ioctl(s.fileno(), 0x8915, struct.pack('256s', interface[:15].encode('utf-8')))[20:24])
 
+    
 
-def _get_network():
+def _get_network(interface=None):
     ''' get primary IP of your host '''
 
-    # add your primary IP
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        # doesn't even have to be reachable
-        s.connect(('10.255.255.255', 1))
-        IP = s.getsockname()[0]
-    except:
-        IP = '127.0.0.1'
-    finally:
-        s.close()
-    return IP
+    if interface:
+        
+        ifaces = psutil.net_if_addrs()
+
+        if not interface in ifaces.keys():
+            print(c.YELLOW + 'interface name %s is not valid. Valid interfaces: %s' % (interface, list(ifaces.keys())) + c.END)
+            sys.exit()
+
+        IP = _get_iface_ip(interface)
+
+        if IP:
+            return IP
+        else:
+            print(c.RED + 'cannot determine IP address for interface %s' % interface + c.END)
+            sys.exit()
+        
+    else:
+        # add your primary IP
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            s.connect(('10.255.255.255', 1))
+            IP = s.getsockname()[0]
+        except OSError as err:
+            IP = '127.0.0.1'
+        finally:
+            s.close()
+        return IP
 
 
 def _serve(args):
@@ -43,14 +61,13 @@ def _serve(args):
    
 
     if not port.isdigit():
-        print('pass a numeric port, ie: 7500')
+        print(c.YELLOW + 'pass a numeric port, ie: 7500' + c.END)
         sys.exit()
 
     ## check python version thats currently running Portela
     # Python 2
     if sys.version_info[0] is 2:
         import SimpleHTTPServer
-        import BaseHTTPServer as bhs
         import SocketServer
         http_handler = SimpleHTTPServer.SimpleHTTPRequestHandler
         http_server = SocketServer.TCPServer
@@ -65,7 +82,7 @@ def _serve(args):
         print('Python version mismatch, only comptabile with Python2 or Python3')
         sys.exit()
 
-    IP = _get_network()
+    IP = _get_network(args.interface)
 
 
     class Handler(http_handler):
@@ -81,7 +98,7 @@ def _serve(args):
         def do_GET(self):
 
             if not args.message:
-                message = 'portela!'
+                message = 'Portela!'
             else:
                 message = str(args.message)
 
@@ -97,16 +114,16 @@ def _serve(args):
             self.wfile.write(self._msg("POST!"))
 
     server = http_server((IP, int(port)), Handler)
-    print(GREEN + '\nPortela serving on port: ' + port + END)
-    print(GREEN + 'Connect to this machine using netcat: ' + END)
-    print(TEAL + 'nc -zv ' + IP + ' ' + port + END)
+    print('\n' + c.GREEN + 'Portela serving on port: ' + port + c.END)
+    print(c.GREEN + 'Connect to this machine using netcat or curl: ' + c.END)
+    print(c.TEAL + 'nc -zv ' + IP + ' ' + port + c.END)
+    print(c.TEAL + 'curl http://' + IP + ':' + port + c.END +'\n')
     return server.serve_forever()
 
 
 def _main(args, action='status'):
     """ start the server either as daemon or standalone """
 
-    print(args)
     class PortelaDaemon(Daemon):
         def run(self):
             while True:
@@ -115,15 +132,18 @@ def _main(args, action='status'):
     d = PortelaDaemon(user_home + '/.portela.pid')
 
     if args.action == 'start':
-        print('starting!!')
+        
         if args.daemon:
             d.start()
-            print("serving Portela as daemon")    
+            
         else:
             _serve(args)
 
     if args.action == 'stop':
         d.stop()
+
+    if args.action == 'status':
+        d.status()
 
 parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
     description=textwrap.dedent('''
@@ -145,12 +165,21 @@ serve_parser = subparsers.add_parser('serve', help='serve HTTP listener on a por
 serve_parser.add_argument('port', help='port to listen on', type=int)
 serve_parser.add_argument('-m', '--message', action='store', help='message to output during HTTP connection')
 serve_parser.add_argument('-d', '--daemon', action='store_true', default=False, help='run Portela as a daemon')
+serve_parser.add_argument('-i', '--interface', action='store', default=False, help='run Portela on specific interface or IP')
 serve_parser.set_defaults(func=_main, action='start')
+
 stop_parser = subparsers.add_parser('stop')
 stop_parser.set_defaults(func=_main, action='stop')
+
 status_parser = subparsers.add_parser('status')
 status_parser.set_defaults(func=_main, action='status')
 
 def entry():
     args = parser.parse_args()
+    
+    try:
+        func = args.func
+    except AttributeError:
+        parser.error("too few arguments")
+    
     args.func(args)  # call the default function
