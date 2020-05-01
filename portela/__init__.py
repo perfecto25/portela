@@ -12,6 +12,8 @@ import struct
 from os.path import expanduser
 from portela.daemon import Daemon
 from portela.shared import Color as c
+from portela.shared import all_interfaces
+
 user_home = expanduser("~")
 
 def _get_iface_ip(interface):
@@ -20,17 +22,15 @@ def _get_iface_ip(interface):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     return socket.inet_ntoa(fcntl.ioctl(s.fileno(), 0x8915, struct.pack('256s', interface[:15].encode('utf-8')))[20:24])
 
-    
 
 def _get_network(interface=None):
     ''' get primary IP of your host '''
 
     if interface:
-        
-        ifaces = psutil.net_if_addrs()
+        ifaces = all_interfaces()
 
-        if not interface in ifaces.keys():
-            print(c.YELLOW + 'interface name %s is not valid. Valid interfaces: %s' % (interface, list(ifaces.keys())) + c.END)
+        if not interface in ifaces:
+            print(c.YELLOW + 'interface name %s is not valid. Valid interfaces: %s' % (interface, ifaces) + c.END)
             sys.exit()
 
         IP = _get_iface_ip(interface)

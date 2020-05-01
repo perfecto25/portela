@@ -8,7 +8,10 @@ Portela is a Python 2 & 3 compatible port allocator with zero dependencies.
 
 Portela can be used to test basic port connectivity on your host and lets you open up ports on various network interfaces.
 
-You can do the same functions with netcat, SimpleHTTPServer, socat and various other tools, but Portela is more user-friendly.
+You can do the same functions with netcat, SimpleHTTPServer, socat and various other tools, but Portela is more user-friendly and offers a simple way to bind to various network interfaces.
+
+Python compatibility: 2.7.x - 3.8.x
+Platform compatibility: Linux
 
 ### usage:
 ```
