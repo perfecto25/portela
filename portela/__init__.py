@@ -5,7 +5,6 @@ import os
 import socket
 import subprocess
 import argparse
-import psutil
 import textwrap
 import fcntl
 import struct
