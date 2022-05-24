@@ -1,6 +1,6 @@
 # Portela
 
-![](portela.png)
+![](portela.jpg)
 
 ## a simple port allocator
 
@@ -16,10 +16,10 @@ Platform compatibility: Linux
 
 ### usage:
 ```
-# portela 1234                      // spin up a listener on port 1234
-# portela 1234 -i eth1              // spins up on port 1234 on interface 'eth1'
-# portela 1234 -i eth1 -d           // spins up on port 1234 on interface 'eth1' and run as daemon
-# portela 1234 -m "samba magic"     // spins up on port 1234 and return a message on HTTP call
+# portela serve 1234                      // spin up a listener on port 1234
+# portela serve 1234 -i eth1              // spins up on port 1234 on interface 'eth1'
+# portela serve 1234 -i eth1 -d           // spins up on port 1234 on interface 'eth1' and run as daemon
+# portela serve 1234 -m "samba magic"     // spins up on port 1234 and return a message on HTTP call
 # portela stop                 // stops all instances of portela listerner
 # portela status                 // check if portela is running as daemon
 # portela help / -h / --help   // prints this message
